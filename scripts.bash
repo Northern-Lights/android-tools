@@ -105,3 +105,15 @@ function signdir {
 		fi
 	done
 }
+
+function installsignedapp {
+# Uninstalls an app, signs an apk, and installs it
+	app=$1
+	if [ -z $app ]; then
+		echo "Choose an app to uninstall"
+		return 1
+	fi
+	adb uninstall $app
+	signdir 'platform' && adb install app-debug-platform-signed.apk && adb shell "am start -n $app/.Main"
+	return $?
+}
