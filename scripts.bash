@@ -8,6 +8,52 @@ function lsmake {
 	make -qp | awk -F':' '/^[a-zA-Z0-9][^$#\/\t=]*:([^=]|$)/ {split($1,A,/ /);for(i in A)print A[i]}'
 }
 
+function envsetup {
+	LUNCHNUMBER=$1
+	source build/envsetup.sh
+	if [ $? -ne 0 ]; then
+		echo "Failed to source envsetup"
+		return 1
+	fi
+	lunch $LUNCHNUMBER
+	if [ $? -ne 0 ]; then
+		echo "Failed to run lunch"
+		return 2
+	fi
+}
+
+function buildandflash {
+# Builds and flashes AOSP or the specified make target
+	TARGET=$1
+	if [ -z $TARGET ]; then
+		echo "WARNING: building all without a specific target"
+		sleep 3
+	fi
+
+	if [ -z $(which flashsystem.bash) ]; then
+		echo "flashsystem.bash needs to be in your PATH"
+		return 1
+	fi
+
+	if [ -z $OUT ]; then
+		echo "Looks like lunch was not run. Please set up the build environment."
+		return 2
+	fi
+
+	croot
+	make -j8 $TARGET && cd $OUT && flashsystem.bash
+	if [ $? -ne 0 ]; then
+		echo "Failed to make and/or flash the system image"
+		return 3
+	fi
+}
+
+function buildandflashsystem {
+# Builds and flashes using the systemimage target
+	buildandflash systemimage
+	return $?
+}
+
 function signapk {
 	# Signs an apk with a key in
 	# $AOSP_HOME/build/target/product/security/
